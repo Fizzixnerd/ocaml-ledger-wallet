@@ -88,10 +88,23 @@ module Status = struct
           end "Unregistered status message" !string_fs
         with Failure s -> s
 
+  let help_suggestor_f = ref (fun _ -> None)
+  let register_help_suggestor_f f =
+    help_suggestor_f := f
+
+  let to_help_suggestion t = !help_suggestor_f t
+
   let show t = to_string t
 
   let pp ppf t =
-    Format.pp_print_string ppf (to_string t)
+    Format.fprintf ppf "%s%a"
+      (to_string t)
+      (fun ppf -> function
+         | None -> Format.fprintf ppf ""
+         | Some s -> Format.fprintf ppf " - %a" Format.pp_print_text s
+      )
+      (to_help_suggestion t)
+
 end
 
 module Header = struct

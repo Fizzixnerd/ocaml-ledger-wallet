@@ -35,12 +35,11 @@ let path = [
 let curves = [Ed25519; Secp256k1; Secp256r1]
 
 let msg = Cstruct.of_string "Voulez-vous coucher avec moi, ce soir ?"
-let msg_ba = Cstruct.to_bigarray msg
+let msg_bytes = Cstruct.to_bytes msg
 
 let test_getpk h curve =
   get_public_key h curve path >>| fun pk ->
-  Alcotest.(check int "pklen"
-              (if curve = Ed25519 then 33 else 65) (Cstruct.len pk))
+  Alcotest.(check int "pklen" 65 (Cstruct.len pk))
 
 let test_getpk () =
   with_connection (fun h ->
@@ -52,11 +51,10 @@ let test_sign h curve =
   get_public_key h curve path >>= fun pk ->
   sign h curve path msg >>| fun signature ->
   match curve with
-  | Bip32_ed25519 -> ()
-  | Ed25519 -> ()
-     (*let pk = Tweetnacl.Sign.(pk pk) in
+  | Ed25519 ->
+      let pk = Tweetnacl.Sign.(pk_of_cstruct_exn (Cstruct.sub pk 1 pkbytes)) in
       check bool "sign Ed25519" true
-        (Tweetnacl.Sign.verify_detached ~key:pk ~signature msg)*)
+        (Tweetnacl.Sign.verify_detached ~key:pk ~signature msg)
   | Secp256k1 -> begin
       let pk = Cstruct.to_bigarray pk in
       let signature = Cstruct.to_bigarray signature in
@@ -66,16 +64,16 @@ let test_sign h curve =
           check bool "sign Secp256k1" true (Uecc.verify pk ~msg:msg_ba ~signature)
     end
   | Secp256r1 -> begin
-      let pk = Cstruct.to_bigarray pk in
-      let signature = Cstruct.to_bigarray signature in
-      match Uecc.(pk_of_bytes secp256r1 pk) with
+      let pk = Cstruct.to_bytes pk in
+      let signature = Cstruct.to_bytes signature in
+      match Uecc.pk_of_bytes pk with
       | None -> assert false
       | Some pk ->
-          check bool "sign Secp256r1" true (Uecc.verify pk ~msg:msg_ba ~signature)
+          check bool "sign Secp256r1" true (Uecc.verify pk ~msg:msg_bytes ~signature)
     end
 
 let test_sign () =
-  with_connection (fun h -> test_sign h Secp256k1)
+  List.iter (fun curve -> with_connection (fun h -> test_sign h curve)) curves
 
 let basic = [
   "open_close", `Quick, test_open_close ;

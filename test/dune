@@ -8,7 +8,7 @@
  (name test_tezos)
  (modules Test_tezos)
  (package ledgerwallet-tezos)
- (libraries hex alcotest ledgerwallet-tezos tweetnacl uecc))
+ (libraries hex alcotest ledgerwallet-tezos uecc))
 
 (test
  (name test_zil)
